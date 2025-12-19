@@ -12,7 +12,7 @@ function App() {
 
   const handlebutton = () => {
     setstatus(true)
-    axios.post("https://localhost:5000/sendmail", { input: input, EmailList: EmailList })
+    axios.post("https://bulkmail-website-2.onrender.com/sendmail", { input: input, EmailList: EmailList })
       .then((data) => {
         console.log(data)
         if (data.data === true) {
