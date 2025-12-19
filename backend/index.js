@@ -28,12 +28,20 @@ app.post("/sendemail", async (req, res) => {
   try {
     const { msg, EmailList } = req.body
 
-    if (mongoose.connection.readyState !== 1) {
+    // if (mongoose.connection.readyState !== 1) {
+    //   return res.send(false)
+    // }/
+
+    if (!msg || !EmailList || EmailList.length === 0) {
+      console.log("Empty message or email list")
       return res.send(false)
     }
 
     const data = await Credential.findOne()
-    if (!data) return res.send(false)
+    if (!data) {
+      console.log("no email credentials in DB")
+      return res.send(false)
+    }
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
