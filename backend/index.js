@@ -1,74 +1,73 @@
-require("dotenv").config()
-const express = require("express")
-const cors = require("cors")
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
 const nodemailer = require("nodemailer");
-const mongoose=require("mongoose")
-const app = express()
-app.use(cors({ origin: "*" }))
-app.use(express.json())
+const app = express();
+const mongoose = require("mongoose");
+app.use(cors());
+app.use(express.json());
 
 
+mongoose.connect(process.env.MONGO_URI)
+.then(() => {
+  console.log("connected to Db successfully");
+})
+.catch(()=>{
+    console.log("failed to connect with DB")
 
-mongoose.connect(process.env.MONGO_URL).then(()=>{
-  console.log("connected to db");
-}).catch((err)=>{
-  console.log("failed to connect")
-  console.log(err.message)
 })
 
-const credentialSchema = new mongoose.Schema({
-  user: String,
-  pass: String
-})
+const userdetails = mongoose.model("bulkmail", {}, "bulkmail");
 
-const Credential = mongoose.model("Credential", credentialSchema, "bulkmail")
+app.post("/sendmail", (req, res) => {
+  const input = req.body.input;
+  const EmailList = req.body.EmailList;
 
+  userdetails.find()
+    .then((data) => {
+      console.log(data);
+      const { user, pass} = data[0].toJSON();
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user:user,
+          pass:pass
+        },
+      });
 
-app.post("/sendemail", async (req, res) => {
-  try {
-    const { msg, EmailList } = req.body
+      new Promise(async function (resolve, reject) {
+        try {
+          console.log("sending email to " + EmailList.length + " users");
+          for (var i = 0; i < EmailList.length; i++) {
+            console.log(user,pass)
+            await transporter.sendMail({
+              from:user,
+              to: EmailList[i],
+              subject: "a message from bulkmail",
+              text: input,
+            });
+            console.log("email sent to :" + EmailList[i]);
+          }
+          resolve("success");
+        }
+         catch (err) {
+          console.log(err)
+          reject("failed");
+        }
 
-    // if (mongoose.connection.readyState !== 1) {
-    //   return res.send(false)
-    // }/
-
-    if (!msg || !EmailList || EmailList.length === 0) {
-      console.log("Empty message or email list")
-      return res.send(false)
-    }
-
-    const data = await Credential.findOne()
-    if (!data) {
-      console.log("no email credentials in DB")
-      return res.send(false)
-    }
-
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: data.user,
-        pass: data.pass
-      }
-    })
-
-    for (let email of EmailList) {
-      await transporter.sendMail({
-        from: data.user,
-        to: email,
-        subject: "A message from bulk mail app",
-        text: msg
       })
-      console.log("Email sent to:", email)
-    }
+        .then(() => {
+          res.send(true);
+        })
+        .catch(() => {
+          res.send(false);
+        });
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+});
 
-    res.send(true)
-
-  } catch (error) {
-    console.log(error)
-    res.send(false)
-  }
-})
-
-const PORT = process.env.PORT || 5000
-app.listen(PORT, () => console.log("server started on port", PORT))
-
+app.listen(5000, () => {
+  console.log("server started on port 5000...");
+});
