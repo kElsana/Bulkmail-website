@@ -6,83 +6,116 @@ import axios from 'axios'
 import * as XLSX from 'xlsx'
 
 function App() {
+
+const [subject, setSubject] = useState("")
   const [msg, setMsg] = useState("")
-  const [status, setStatus] = useState(false)
-  const [EmailList, setEmailList] = useState([])
+  const [emails, setEmails] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState(null)
+  const [history, setHistory] = useState([])
+  const [showHistory, setShowHistory] = useState(false)
 
-  function handleMsg(evt){
-    setMsg(evt.target.value)
-  }
+  const API = import.meta.env.VITE_API_URL
 
-  function handlefile(evt){
-    const file = evt.target.files[0]
-    console.log(file)
-
-    const reader = new FileReader();
-    reader.onload =function(e){
-      const data = e.target.result
-      const workbook = XLSX.read(data, {type:'binary'})
-      const sheetName=workbook.SheetNames[0]
-      const worksheet=workbook.Sheets[sheetName]
-      const emaillist = XLSX.utils.sheet_to_json(worksheet, { header: "A" })
-
-      const totalemail = emaillist.map((item) => {
-        return item.A
-      })
-      setEmailList(totalemail)
-      console.log(totalemail)
+  function handleFile(e) {
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const workbook = XLSX.read(ev.target.result, { type: "binary" })
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      const data = XLSX.utils.sheet_to_json(sheet, { header: "A" })
+      setEmails(data.map(d => d.A))
     }
-     reader.readAsBinaryString(file);
+    reader.readAsBinaryString(e.target.files[0])
   }
 
-  function send(){
-    setStatus(true)
-    axios.post("https://bulkmail-website-4.onrender.com/sendemail",{msg:msg,EmailList:EmailList})
-    .then((data)=>{
-      if(data.data === true){
-        alert("Email Sent Successfully")
-        setStatus(false)
-      }else{
-        alert("Failed to sent email")
-      }
+  function send() {
+    setLoading(true)
+    axios.post(`${API}/sendemail`, {
+      subject,
+      msg,
+      EmailList: emails
+    }).then(res => {
+      setResult(res.data)
+      setLoading(false)
+    })
+  }
+
+  function loadHistory() {
+    axios.get(`${API}/history`).then(res => {
+      setHistory(res.data)
+      setShowHistory(true)
     })
   }
 
   return (
     <>
-       <div>
-        <div className='bg-blue-950 text-white text-center '>
-          <h1 className='text-2xl font-medium px-5 py-3'>BulkMail</h1>
-        </div>
 
-        <div className='bg-blue-800 text-white text-center '>
-          <h1 className=' font-medium px-5 py-3'>We can hlep your business with sending multiple email at Advance</h1>
-        </div>
-
-        <div className='bg-blue-800 text-white text-center '>
-          <h1 className=' font-medium px-5 py-3'>Drag and Drop</h1>
-        </div>
-
-        <div className='bg-blue-400 flex flex-col items-center text-black px-5 py-3'>
-          <textarea onChange={handleMsg} value={msg} name="" className='w-[80%] h-32 py-2 outline-none px-2 my-5 bg-white border border-black rounded-md' placeholder='Enter the email text'></textarea>
+     <div className="min-h-screen bg-gradient-to-br from-[#4b3f8f] via-[#6b5fb5] to-[#a8c8ff] p-6">
+      <div className="max-w-2xl mx-auto rounded-2xl
+            bg-white/75 backdrop-blur-md
+            shadow-2xl border border-white/30 p-6">
+        <h1 className="text-2xl text-[#2e256f] font-bold text-center mb-4">📧 Bulk Mail App</h1>
+        <p className="text-xl text-[#4b3f8f] font-medium text-center mb-4">Send multiple emails easily with Excel upload</p>
+        <p className="text-xl text-[#4b3f8f] font-medium mb-4">SUBJECT:</p>
         
+        <input
+          className="w-full  mb-3 rounded-lg border border-[#6b5fb5]/30 bg-white/60 p-2 text-[#2e256f] focus:outline-none focus:ring-2 focus:ring-[#6b5fb5]"
+          placeholder="Subject"
+          value={subject}
+          onChange={e => setSubject(e.target.value)}
+        />
+        
+        <p className="text-xl text-[#4b3f8f] font-medium mb-4">Email Body:</p>
+        <textarea
+          className="w-full mb-3 rounded-lg border border-[#6b5fb5]/30
+         bg-white/60 p-2 text-[#2e256f]
+         focus:outline-none focus:ring-2 focus:ring-[#6b5fb5]"
+          rows="4"
+          placeholder="Message"
+          value={msg}
+          onChange={e => setMsg(e.target.value)}
+        />
 
-        <div>
-          <input onChange={handlefile} type="file" className='border-4 border-dashed py-4 px-4 mt-5 mb-5'/>
-        </div>
-        <p className='p-1'>Total Email in the file: {EmailList.length}</p>
-            
-       
-          <button onClick={send} className='bg-blue-950 my-10 p-2 text-white font-medium rounded-md w-fit'>{status? "sending...":"send"}</button>
+        <input type="file" onChange={handleFile} className="mb-2 border border-dashed p-2 shadow" />
+        <p className="text-sm">Total Emails: {emails.length}</p>
 
-        </div>
-         <div className='bg-blue-300 text-white text-center p-8'>
+        <button
+          disabled={loading}
+          onClick={send}
+          className="w-full mt-4 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-[#5a4fcf] to-[#7bdcb5] hover:scale-[1.02] transition"
+        >
+          {loading ? "Sending..." : "Send Emails"}
+        </button>
 
-        </div>
-         <div className='bg-blue-200 text-white text-center p-8'>
+        {result && (
+          <div className="mt-4 text-sm text-[#2e256f]">
+            ✅ Success: {result.success} <br />
+            ❌ Failed: {result.failed}
+          </div>
+        )}
 
-        </div>
+        <button
+          onClick={loadHistory}
+          className="mt-4 text-blue-600 font-bold underline"
+        >
+          View History
+        </button>
       </div>
+
+      {showHistory && (
+        <div className="max-w-3xl mx-auto mt-6 p-4 shadow  bg-white/60 backdrop-blur-sm
+        rounded-xl  border border-white/30 text-[#2e256f]">
+          <h2 className="font-bold mb-2">📜 Email History</h2>
+          {history.map(h => (
+            <div key={h._id} className="border-b py-2 text-sm">
+              <b>{h.subject}</b> | {h.total} mails |
+              ✅ {h.success} ❌ {h.failed}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+       
     </>
   )
 }
