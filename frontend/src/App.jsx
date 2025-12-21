@@ -15,7 +15,7 @@ const [subject, setSubject] = useState("")
   const [history, setHistory] = useState([])
   const [showHistory, setShowHistory] = useState(false)
 
-  const API = import.meta.env.VITE_API_URL
+
 
   function handleFile(e) {
     const reader = new FileReader()
@@ -30,7 +30,7 @@ const [subject, setSubject] = useState("")
 
   function send() {
     setLoading(true)
-    axios.post(`${API}/sendemail`, {
+    axios.post(`https://bulkmail-website-5.onrender.com/sendemail`, {
       subject,
       msg,
       EmailList: emails
@@ -41,7 +41,7 @@ const [subject, setSubject] = useState("")
   }
 
   function loadHistory() {
-    axios.get(`${API}/history`).then(res => {
+    axios.get(`https://bulkmail-website-5.onrender.com/history`).then(res => {
       setHistory(res.data)
       setShowHistory(true)
     })
