@@ -1,8 +1,66 @@
 require("dotenv").config()
 const express = require("express")
 const cors = require("cors")
+const mongoose = require("mongoose")
+const sgMail = require("@sendgrid/mail")
+
+const app = express()
+
+app.use(cors({ origin: "*" }))
+app.use(express.json())
+
+// 🔑 SendGrid API Key
+sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+
+// MongoDB (keep it – future use)
+mongoose.connect(process.env.MONGO_URL)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.log("Mongo error:", err.message))
+
+app.post("/sendemail", async (req, res) => {
+  try {
+    const { msg, EmailList } = req.body
+
+    if (!msg || !EmailList || EmailList.length === 0) {
+      return res.status(400).send(false)
+    }
+
+    const messages = EmailList.map(email => ({
+      to: email,
+      from: process.env.SENDER_EMAIL, // ✅ verified sender
+      subject: "A message from Bulk Mail App",
+      text: msg
+    }))
+
+    // 🔥 Bulk send
+    await sgMail.send(messages)
+
+    console.log("All emails sent successfully")
+    res.send(true)
+
+  } catch (error) {
+    console.error(error.response?.body || error.message)
+    res.send(false)
+  }
+})
+
+const PORT = process.env.PORT || 5000
+app.listen(PORT, () => console.log("Server running on port", PORT))
+
+
+
+
+
+
+/*
+require("dotenv").config()
+const express = require("express")
+const cors = require("cors")
 const nodemailer = require("nodemailer");
 const mongoose=require("mongoose")
+// const sgmail = require("@sendgrid/mail")
+// const multer=require("multer")
+
 const app = express()
 app.use(cors({ origin: "*" }))
 app.use(express.json())
@@ -28,20 +86,12 @@ app.post("/sendemail", async (req, res) => {
   try {
     const { msg, EmailList } = req.body
 
-    // if (mongoose.connection.readyState !== 1) {
-    //   return res.send(false)
-    // }/
-
-    if (!msg || !EmailList || EmailList.length === 0) {
-      console.log("Empty message or email list")
+    if (mongoose.connection.readyState !== 1) {
       return res.send(false)
     }
 
     const data = await Credential.findOne()
-    if (!data) {
-      console.log("no email credentials in DB")
-      return res.send(false)
-    }
+    if (!data) return res.send(false)
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -70,5 +120,4 @@ app.post("/sendemail", async (req, res) => {
 })
 
 const PORT = process.env.PORT || 5000
-app.listen(PORT, () => console.log("server started on port", PORT))
-
+app.listen(PORT, () => console.log("server started on port", + PORT))*/

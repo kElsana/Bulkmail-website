@@ -37,20 +37,20 @@ function App() {
 
   function send(){
     setStatus(true)
-    axios.post("https://bulkmail-website-1-kddh.onrender.com/sendemail",{msg:msg,EmailList:EmailList})
+    axios.post("http://localhost:5000/sendemail",{msg:msg,EmailList:EmailList})
     .then((data)=>{
       if(data.data === true){
         alert("Email Sent Successfully")
         setStatus(false)
       }else{
-        alert("Failed")
+        alert("Failed to sent email")
       }
     })
   }
 
   return (
     <>
-      <div>
+       <div>
         <div className='bg-blue-950 text-white text-center '>
           <h1 className='text-2xl font-medium px-5 py-3'>BulkMail</h1>
         </div>
